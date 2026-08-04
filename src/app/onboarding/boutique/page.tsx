@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Logo } from "@/components/logo";
 import { CreateShopForm } from "@/components/onboarding/create-shop-form";
+import { prisma } from "@/lib/prisma";
 
 export const metadata: Metadata = {
   title: "Configurer votre boutique",
@@ -14,7 +15,13 @@ export default async function OnboardingBoutiquePage() {
 
   if (!session) redirect("/connexion");
   if (session.user.role !== "SELLER") redirect("/");
-  if (session.user.hasShop) redirect("/dashboard/seller");
+
+  // Vérification directe en DB — le JWT peut être en retard
+  const existingShop = await prisma.shop.findUnique({
+    where: { ownerId: session.user.id },
+    select: { id: true },
+  });
+  if (existingShop) redirect("/dashboard/seller");
 
   return (
     <div className="min-h-screen bg-zinc-50 flex flex-col">

@@ -58,12 +58,19 @@ export function CreateShopForm({ sellerName }: { sellerName: string }) {
     const result = await createShop(data);
 
     if (!result.success) {
+      // Si la boutique existe déjà en DB, c'est qu'une soumission précédente a réussi
+      // On redirige directement sans afficher l'erreur
+      if (result.error === "Vous avez déjà une boutique.") {
+        router.push("/onboarding/produits");
+        router.refresh();
+        return;
+      }
       setServerError(result.error ?? "Une erreur est survenue.");
       return;
     }
 
-    // Refresh session pour mettre hasShop à jour
-    router.push("/dashboard/seller?onboarding=done");
+    // Succès → étape 3
+    router.push("/onboarding/produits");
     router.refresh();
   }
 

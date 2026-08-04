@@ -60,12 +60,25 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   ],
 
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger }) {
+      // Au login initial, on copie les données du user
       if (user) {
         token.id = user.id;
         token.role = user.role;
         token.hasShop = user.hasShop;
       }
+
+      // À chaque revalidation du token (ou trigger "update"),
+      // on relit hasShop depuis la DB pour le seller
+      // Cela garantit que la création de boutique est reflétée
+      if (token.id && token.role === "SELLER") {
+        const shop = await prisma.shop.findUnique({
+          where: { ownerId: token.id as string },
+          select: { id: true },
+        });
+        token.hasShop = !!shop;
+      }
+
       return token;
     },
     async session({ session, token }) {
