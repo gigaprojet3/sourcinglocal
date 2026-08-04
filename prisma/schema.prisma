@@ -1,0 +1,161 @@
+// SourcingLocal — Prisma Schema
+// Dev: SQLite (dev.db) → Prod: Supabase (PostgreSQL)
+// Pour passer en prod: changer provider → "postgresql" dans prisma.config.ts (datasource.url)
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma/client"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// ─────────────────────────────────────────────
+// USER
+// ─────────────────────────────────────────────
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  phone     String?
+  avatar    String?
+  role      String   @default("BUYER") // "BUYER" | "SELLER" | "ADMIN"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  shop             Shop?
+  reviews          Review[]
+  subscription     Subscription?
+  sentMessages     Message[] @relation("SentMessages")
+  receivedMessages Message[] @relation("ReceivedMessages")
+
+  @@index([email])
+}
+
+// ─────────────────────────────────────────────
+// SHOP (Profil boutique du vendeur)
+// ─────────────────────────────────────────────
+model Shop {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  logo        String?
+  banner      String?
+  city        String?
+  country     String   @default("Sénégal")
+  address     String?
+  isVerified  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  owner    User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId  String    @unique
+  products Product[]
+
+  @@index([slug])
+}
+
+// ─────────────────────────────────────────────
+// CATEGORY
+// ─────────────────────────────────────────────
+model Category {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  icon        String?
+  createdAt   DateTime @default(now())
+
+  products Product[]
+
+  @@index([slug])
+}
+
+// ─────────────────────────────────────────────
+// PRODUCT
+// ─────────────────────────────────────────────
+model Product {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  priceCfa    Int      // Prix en francs CFA (entier)
+  images      String   // Tableau JSON d'URLs stocké en string
+  origin      String?  // Origine géographique
+  isActive    Boolean  @default(true)
+  isFeatured  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  category   Category @relation(fields: [categoryId], references: [id])
+  categoryId String
+  shop       Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  shopId     String
+  reviews    Review[]
+
+  @@index([slug])
+  @@index([categoryId])
+  @@index([shopId])
+  @@index([isFeatured])
+}
+
+// ─────────────────────────────────────────────
+// REVIEW
+// ─────────────────────────────────────────────
+model Review {
+  id        String   @id @default(cuid())
+  rating    Int      // 1–5
+  comment   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  author    User    @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  authorId  String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId String
+
+  @@unique([authorId, productId])
+  @@index([productId])
+}
+
+// ─────────────────────────────────────────────
+// SUBSCRIPTION (Abonnement mensuel acheteur)
+// ─────────────────────────────────────────────
+model Subscription {
+  id                 String   @id @default(cuid())
+  status             String   @default("INACTIVE") // "ACTIVE" | "INACTIVE" | "CANCELLED" | "PAST_DUE"
+  planName           String   @default("STARTER")  // "STARTER" | "PRO" | "ENTERPRISE"
+  priceCfa           Int
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+  geniuspayRef       String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @unique
+
+  @@index([userId])
+  @@index([status])
+}
+
+// ─────────────────────────────────────────────
+// MESSAGE (Contact vendeur — débloqué par abonnement)
+// ─────────────────────────────────────────────
+model Message {
+  id        String   @id @default(cuid())
+  content   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  sender     User   @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  senderId   String
+  receiver   User   @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+  receiverId String
+
+  @@index([senderId])
+  @@index([receiverId])
+}
