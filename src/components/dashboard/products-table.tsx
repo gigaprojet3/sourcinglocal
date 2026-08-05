@@ -42,6 +42,137 @@ interface ProductsTableProps {
 
 type FilterStatus = "all" | "inStock" | "outOfStock";
 
+// ── Menu actions avec détection haut/bas ──────────────────────────────
+interface ActionMenuProps {
+  product: ProductRow;
+  isOpen: boolean;
+  isLoading: boolean;
+  confirmDelete: boolean;
+  onToggle: (e: React.MouseEvent) => void;
+  onToggleStock: () => void;
+  onRequestDelete: () => void;
+  onConfirmDelete: () => void;
+  onCancelDelete: () => void;
+  onClose: () => void;
+}
+
+function ActionMenu({
+  product,
+  isOpen,
+  isLoading,
+  confirmDelete,
+  onToggle,
+  onToggleStock,
+  onRequestDelete,
+  onConfirmDelete,
+  onCancelDelete,
+  onClose,
+}: ActionMenuProps) {
+  const triggerRef = React.useRef<HTMLButtonElement>(null);
+  const [openUpward, setOpenUpward] = React.useState(false);
+
+  // Calcule si le dropdown doit s'ouvrir vers le haut
+  function handleToggle(e: React.MouseEvent) {
+    if (triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      // La hauteur estimée du dropdown (3 items + confirmation ~200px)
+      setOpenUpward(spaceBelow < 220);
+    }
+    onToggle(e);
+  }
+
+  return (
+    <div className="relative flex justify-end">
+      <button
+        ref={triggerRef}
+        type="button"
+        disabled={isLoading}
+        onClick={handleToggle}
+        className="w-8 h-8 rounded-lg flex items-center justify-center text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition-colors"
+        aria-label="Actions"
+      >
+        {isLoading ? (
+          <Loader2 size={14} strokeWidth={1.5} className="animate-spin" />
+        ) : (
+          <MoreHorizontal size={16} strokeWidth={1.5} />
+        )}
+      </button>
+
+      {isOpen && (
+        <div
+          data-menu-dropdown
+          className={cn(
+            "absolute right-0 z-50 w-48 rounded-xl border border-zinc-100 bg-white shadow-lg shadow-zinc-200/50 py-1",
+            // Ouvrir vers le haut ou vers le bas selon l'espace disponible
+            openUpward ? "bottom-full mb-1" : "top-full mt-1"
+          )}
+        >
+          {/* Modifier */}
+          <Link
+            href={`/dashboard/seller/produits/${product.id}/modifier`}
+            onClick={onClose}
+            className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-zinc-700 hover:bg-zinc-50 transition-colors"
+          >
+            <Pencil size={13} strokeWidth={1.5} className="text-black shrink-0" />
+            Modifier
+          </Link>
+
+          {/* Toggle stock */}
+          <button
+            type="button"
+            onClick={onToggleStock}
+            className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-zinc-700 hover:bg-zinc-50 transition-colors"
+          >
+            {product.inStock ? (
+              <ToggleLeft size={13} strokeWidth={1.5} className="text-black shrink-0" />
+            ) : (
+              <ToggleRight size={13} strokeWidth={1.5} className="text-black shrink-0" />
+            )}
+            {product.inStock ? "Passer en rupture" : "Remettre en stock"}
+          </button>
+
+          <div className="h-px bg-zinc-100 my-1" />
+
+          {/* Supprimer avec confirmation */}
+          {confirmDelete ? (
+            <div data-menu-dropdown className="px-3 py-2.5 space-y-2">
+              <p className="text-xs text-red-600 font-medium">
+                Confirmer la suppression ?
+              </p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={onConfirmDelete}
+                  className="flex-1 text-xs bg-red-600 text-white rounded-md py-1.5 hover:bg-red-700 transition-colors font-medium"
+                >
+                  Oui, supprimer
+                </button>
+                <button
+                  type="button"
+                  onClick={onCancelDelete}
+                  className="flex-1 text-xs border border-zinc-200 rounded-md py-1.5 hover:bg-zinc-50 transition-colors"
+                >
+                  Annuler
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={onRequestDelete}
+              className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+            >
+              <Trash2 size={13} strokeWidth={1.5} className="shrink-0" />
+              Supprimer
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Composant principal ───────────────────────────────────────────────
 export function ProductsTable({ products, allCategories }: ProductsTableProps) {
   const router = useRouter();
@@ -86,8 +217,7 @@ export function ProductsTable({ products, allCategories }: ProductsTableProps) {
     setLoadingId(null);
   }
 
-  // Fermer le menu si clic en dehors — différé pour ne pas annuler
-  // le clic sur les boutons du dropdown (data-menu-dropdown les exclut)
+  // Fermer menu au clic extérieur
   React.useEffect(() => {
     if (!openMenuId) return;
     function handleOutside(e: MouseEvent) {
@@ -164,12 +294,15 @@ export function ProductsTable({ products, allCategories }: ProductsTableProps) {
       {/* ── Tableau ── */}
       {filtered.length === 0 ? (
         <EmptyState
-          hasFilters={!!(search || filterCategory !== "all" || filterStatus !== "all")}
+          hasFilters={
+            !!(search || filterCategory !== "all" || filterStatus !== "all")
+          }
         />
       ) : (
-        <div className="rounded-xl border border-zinc-100 bg-white overflow-hidden">
+        // ⚠️ PAS de overflow-hidden ici — le dropdown doit pouvoir dépasser
+        <div className="rounded-xl border border-zinc-100 bg-white">
           {/* Header */}
-          <div className="hidden md:grid grid-cols-[48px_1fr_160px_120px_100px_80px_48px] gap-4 px-4 py-3 border-b border-zinc-100 bg-zinc-50">
+          <div className="hidden md:grid grid-cols-[48px_1fr_160px_120px_100px_80px_48px] gap-4 px-4 py-3 border-b border-zinc-100 bg-zinc-50 rounded-t-xl">
             <div />
             <span className="text-xs font-medium text-zinc-400 uppercase tracking-wide">
               Produit
@@ -199,13 +332,15 @@ export function ProductsTable({ products, allCategories }: ProductsTableProps) {
             }
             const thumb = images[0];
             const isLoading = loadingId === product.id;
+            const isLast = idx === filtered.length - 1;
 
             return (
               <div
                 key={product.id}
                 className={cn(
                   "grid grid-cols-[48px_1fr_auto] md:grid-cols-[48px_1fr_160px_120px_100px_80px_48px] gap-4 items-center px-4 py-3 transition-colors hover:bg-zinc-50",
-                  idx !== filtered.length - 1 && "border-b border-zinc-50",
+                  !isLast && "border-b border-zinc-50",
+                  isLast && "rounded-b-xl",
                   isLoading && "opacity-50"
                 )}
               >
@@ -292,94 +427,24 @@ export function ProductsTable({ products, allCategories }: ProductsTableProps) {
                 </span>
 
                 {/* ── Menu actions ── */}
-                <div className="relative flex justify-end">
-                  <button
-                    type="button"
-                    disabled={isLoading}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setConfirmDeleteId(null);
-                      setOpenMenuId(
-                        openMenuId === product.id ? null : product.id
-                      );
-                    }}
-                    className="w-8 h-8 rounded-lg flex items-center justify-center text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition-colors"
-                    aria-label="Actions"
-                  >
-                    {isLoading ? (
-                      <Loader2 size={14} strokeWidth={1.5} className="animate-spin" />
-                    ) : (
-                      <MoreHorizontal size={16} strokeWidth={1.5} />
-                    )}
-                  </button>
-
-                  {openMenuId === product.id && (
-                    <div
-                      data-menu-dropdown
-                      className="absolute right-0 top-full mt-1 z-30 w-48 rounded-xl border border-zinc-100 bg-white shadow-lg shadow-zinc-200/50 py-1"
-                    >
-                      {/* Modifier */}
-                      <Link
-                        href={`/dashboard/seller/produits/${product.id}/modifier`}
-                        onClick={() => setOpenMenuId(null)}
-                        className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-zinc-700 hover:bg-zinc-50 transition-colors"
-                      >
-                        <Pencil size={13} strokeWidth={1.5} className="text-black shrink-0" />
-                        Modifier
-                      </Link>
-
-                      {/* Toggle stock */}
-                      <button
-                        type="button"
-                        onClick={() => handleToggleStock(product.id)}
-                        className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-zinc-700 hover:bg-zinc-50 transition-colors"
-                      >
-                        {product.inStock ? (
-                          <ToggleLeft size={13} strokeWidth={1.5} className="text-black shrink-0" />
-                        ) : (
-                          <ToggleRight size={13} strokeWidth={1.5} className="text-black shrink-0" />
-                        )}
-                        {product.inStock ? "Passer en rupture" : "Remettre en stock"}
-                      </button>
-
-                      <div className="h-px bg-zinc-100 my-1" />
-
-                      {/* Supprimer avec confirmation */}
-                      {confirmDeleteId === product.id ? (
-                        <div data-menu-dropdown className="px-3 py-2.5 space-y-2">
-                          <p className="text-xs text-red-600 font-medium">
-                            Confirmer la suppression ?
-                          </p>
-                          <div className="flex gap-2">
-                            <button
-                              type="button"
-                              onClick={() => handleDelete(product.id)}
-                              className="flex-1 text-xs bg-red-600 text-white rounded-md py-1.5 hover:bg-red-700 transition-colors font-medium"
-                            >
-                              Oui, supprimer
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setConfirmDeleteId(null)}
-                              className="flex-1 text-xs border border-zinc-200 rounded-md py-1.5 hover:bg-zinc-50 transition-colors"
-                            >
-                              Annuler
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => setConfirmDeleteId(product.id)}
-                          className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
-                        >
-                          <Trash2 size={13} strokeWidth={1.5} className="shrink-0" />
-                          Supprimer
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </div>
+                <ActionMenu
+                  product={product}
+                  isOpen={openMenuId === product.id}
+                  isLoading={isLoading}
+                  confirmDelete={confirmDeleteId === product.id}
+                  onToggle={(e) => {
+                    e.stopPropagation();
+                    setConfirmDeleteId(null);
+                    setOpenMenuId(
+                      openMenuId === product.id ? null : product.id
+                    );
+                  }}
+                  onToggleStock={() => handleToggleStock(product.id)}
+                  onRequestDelete={() => setConfirmDeleteId(product.id)}
+                  onConfirmDelete={() => handleDelete(product.id)}
+                  onCancelDelete={() => setConfirmDeleteId(null)}
+                  onClose={() => setOpenMenuId(null)}
+                />
               </div>
             );
           })}
