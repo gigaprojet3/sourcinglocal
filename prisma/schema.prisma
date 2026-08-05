@@ -1,6 +1,5 @@
 // SourcingLocal — Prisma Schema
 // Dev: SQLite (dev.db) → Prod: Supabase (PostgreSQL)
-// Pour passer en prod: changer provider → "postgresql" dans prisma.config.ts (datasource.url)
 
 generator client {
   provider = "prisma-client"
@@ -35,7 +34,7 @@ model User {
 }
 
 // ─────────────────────────────────────────────
-// SHOP (Profil boutique du vendeur)
+// SHOP
 // ─────────────────────────────────────────────
 model Shop {
   id          String   @id @default(cuid())
@@ -69,9 +68,24 @@ model Category {
   icon        String?
   createdAt   DateTime @default(now())
 
-  products Product[]
+  // Relation many-to-many avec Product via table de jointure
+  products ProductCategory[]
 
   @@index([slug])
+}
+
+// ─────────────────────────────────────────────
+// PRODUCT — CATEGORY join table (max 3 catégories par produit)
+// ─────────────────────────────────────────────
+model ProductCategory {
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId  String
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  categoryId String
+
+  @@id([productId, categoryId])
+  @@index([productId])
+  @@index([categoryId])
 }
 
 // ─────────────────────────────────────────────
@@ -82,24 +96,26 @@ model Product {
   name        String
   slug        String   @unique
   description String?
-  priceCfa    Int      // Prix en francs CFA (entier)
-  images      String   // Tableau JSON d'URLs stocké en string
-  origin      String?  // Origine géographique
+  priceCfa    Int                     // Prix en francs CFA
+  images      String                  // JSON array — max 2 URLs Cloudinary
+  origin      String?                 // Origine géographique
+  inStock     Boolean  @default(true) // true = En stock, false = En rupture
   isActive    Boolean  @default(true)
   isFeatured  Boolean  @default(false)
+  viewCount   Int      @default(0)    // Nombre de vues (à venir)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  category   Category @relation(fields: [categoryId], references: [id])
-  categoryId String
-  shop       Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  // Relations
+  categories ProductCategory[]
+  shop       Shop              @relation(fields: [shopId], references: [id], onDelete: Cascade)
   shopId     String
   reviews    Review[]
 
-  @@index([slug])
-  @@index([categoryId])
   @@index([shopId])
+  @@index([inStock])
   @@index([isFeatured])
+  @@index([slug])
 }
 
 // ─────────────────────────────────────────────
@@ -107,7 +123,7 @@ model Product {
 // ─────────────────────────────────────────────
 model Review {
   id        String   @id @default(cuid())
-  rating    Int      // 1–5
+  rating    Int
   comment   String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -122,12 +138,12 @@ model Review {
 }
 
 // ─────────────────────────────────────────────
-// SUBSCRIPTION (Abonnement mensuel acheteur)
+// SUBSCRIPTION
 // ─────────────────────────────────────────────
 model Subscription {
   id                 String   @id @default(cuid())
-  status             String   @default("INACTIVE") // "ACTIVE" | "INACTIVE" | "CANCELLED" | "PAST_DUE"
-  planName           String   @default("STARTER")  // "STARTER" | "PRO" | "ENTERPRISE"
+  status             String   @default("INACTIVE")
+  planName           String   @default("STARTER")
   priceCfa           Int
   currentPeriodStart DateTime
   currentPeriodEnd   DateTime
@@ -143,7 +159,7 @@ model Subscription {
 }
 
 // ─────────────────────────────────────────────
-// MESSAGE (Contact vendeur — débloqué par abonnement)
+// MESSAGE
 // ─────────────────────────────────────────────
 model Message {
   id        String   @id @default(cuid())

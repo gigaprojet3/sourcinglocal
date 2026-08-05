@@ -108,8 +108,11 @@ async function main() {
         ]),
         origin: "Ouagadougou, Burkina Faso",
         isFeatured: true,
-        categoryId: beauteCategory.id,
+        inStock: true,
         shopId: seller.shop.id,
+        categories: {
+          create: [{ categoryId: beauteCategory.id }],
+        },
       },
     });
 

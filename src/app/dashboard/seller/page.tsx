@@ -18,49 +18,46 @@ export default async function SellerDashboardPage() {
   const session = await auth();
   if (!session || session.user.role !== "SELLER") redirect("/connexion");
 
-  // Rediriger vers onboarding si pas de boutique
   if (!session.user.hasShop) redirect("/onboarding/boutique");
 
+  // ── Boutique + compteur produits ──────────────────────────────────
   const shop = await prisma.shop.findUnique({
     where: { ownerId: session.user.id },
-    include: {
-      products: {
-        where: { isActive: true },
-        orderBy: { createdAt: "desc" },
-        take: 5,
-        include: { category: true },
-      },
-      _count: { select: { products: true } },
+    select: {
+      id: true,
+      name: true,
+      isVerified: true,
     },
   });
 
   if (!shop) redirect("/onboarding/boutique");
 
+  // ── Derniers produits (new schema: categories many-to-many) ───────
+  const recentProducts = await prisma.product.findMany({
+    where: { shopId: shop.id, isActive: true },
+    orderBy: { createdAt: "desc" },
+    take: 5,
+    select: {
+      id: true,
+      name: true,
+      priceCfa: true,
+      categories: {
+        take: 1,
+        select: { category: { select: { name: true } } },
+      },
+    },
+  });
+
+  // ── Compteur total ────────────────────────────────────────────────
+  const productCount = await prisma.product.count({
+    where: { shopId: shop.id },
+  });
+
   const stats = [
-    {
-      label: "Produits actifs",
-      value: shop._count.products,
-      icon: Package,
-      href: "/dashboard/seller/produits",
-    },
-    {
-      label: "Vues ce mois",
-      value: "—",
-      icon: Eye,
-      href: "#",
-    },
-    {
-      label: "Messages reçus",
-      value: "—",
-      icon: MessageSquare,
-      href: "/dashboard/seller/messages",
-    },
-    {
-      label: "Contacts",
-      value: "—",
-      icon: TrendingUp,
-      href: "#",
-    },
+    { label: "Produits", value: productCount, icon: Package, href: "/dashboard/seller/produits" },
+    { label: "Vues ce mois", value: "—", icon: Eye, href: "#" },
+    { label: "Messages", value: "—", icon: MessageSquare, href: "/dashboard/seller/messages" },
+    { label: "Contacts", value: "—", icon: TrendingUp, href: "#" },
   ];
 
   return (
@@ -106,9 +103,7 @@ export default async function SellerDashboardPage() {
                 </div>
               </CardHeader>
               <CardContent>
-                <p className="text-2xl font-bold text-zinc-900 tabular-nums">
-                  {value}
-                </p>
+                <p className="text-2xl font-bold text-zinc-900 tabular-nums">{value}</p>
               </CardContent>
             </Card>
           </Link>
@@ -118,9 +113,7 @@ export default async function SellerDashboardPage() {
       {/* Derniers produits */}
       <div>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base font-semibold text-zinc-900">
-            Derniers produits
-          </h2>
+          <h2 className="text-base font-semibold text-zinc-900">Derniers produits</h2>
           <Link
             href="/dashboard/seller/produits"
             className="flex items-center gap-1 text-xs text-zinc-400 hover:text-zinc-700 transition-colors"
@@ -130,7 +123,7 @@ export default async function SellerDashboardPage() {
           </Link>
         </div>
 
-        {shop.products.length === 0 ? (
+        {recentProducts.length === 0 ? (
           <Card className="border-dashed">
             <CardContent className="flex flex-col items-center justify-center py-12 text-center gap-3">
               <div className="w-10 h-10 rounded-full bg-zinc-100 flex items-center justify-center">
@@ -157,13 +150,19 @@ export default async function SellerDashboardPage() {
             <table className="w-full text-sm">
               <thead className="border-b border-zinc-100 bg-zinc-50">
                 <tr>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-zinc-400 uppercase tracking-wide">Produit</th>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-zinc-400 uppercase tracking-wide hidden sm:table-cell">Catégorie</th>
-                  <th className="text-right px-4 py-3 text-xs font-medium text-zinc-400 uppercase tracking-wide">Prix</th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-zinc-400 uppercase tracking-wide">
+                    Produit
+                  </th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-zinc-400 uppercase tracking-wide hidden sm:table-cell">
+                    Catégorie
+                  </th>
+                  <th className="text-right px-4 py-3 text-xs font-medium text-zinc-400 uppercase tracking-wide">
+                    Prix
+                  </th>
                 </tr>
               </thead>
               <tbody>
-                {shop.products.map((product, i) => (
+                {recentProducts.map((product) => (
                   <tr
                     key={product.id}
                     className="border-b border-zinc-50 last:border-0 hover:bg-zinc-50 transition-colors"
@@ -172,7 +171,7 @@ export default async function SellerDashboardPage() {
                       {product.name}
                     </td>
                     <td className="px-4 py-3 text-zinc-400 hidden sm:table-cell">
-                      {product.category.name}
+                      {product.categories[0]?.category.name ?? "—"}
                     </td>
                     <td className="px-4 py-3 text-right font-semibold text-zinc-900 tabular-nums whitespace-nowrap">
                       {product.priceCfa.toLocaleString("fr-FR")} FCFA
