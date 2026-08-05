@@ -32,12 +32,28 @@ export default async function ModifierProduitPage(
   let images: string[] = [];
   try { images = JSON.parse(product.images); } catch { images = []; }
 
+  // Parser l'origine "Ville, Pays" → {originCountry, originCity}
+  let originCountry = "";
+  let originCity = "";
+  if (product.origin) {
+    const parts = product.origin.split(",").map((s) => s.trim());
+    if (parts.length >= 2) {
+      // Le format stocké est "Ville, Nom du pays"
+      originCity = parts[0] ?? "";
+      const countryName = parts.slice(1).join(", ").trim();
+      const { COUNTRIES } = await import("@/lib/geo-data");
+      const found = COUNTRIES.find((c) => c.name === countryName);
+      originCountry = found?.code ?? "";
+    }
+  }
+
   const defaultValues = {
     name: product.name,
     description: product.description ?? "",
     priceCfa: product.priceCfa,
     categoryIds: product.categories.map((pc) => pc.categoryId),
-    origin: product.origin ?? "",
+    originCountry,
+    originCity,
     imageMain: images[0] ?? "",
     imageSecond: images[1] ?? "",
     inStock: product.inStock,

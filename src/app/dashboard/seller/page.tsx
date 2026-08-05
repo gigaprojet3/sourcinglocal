@@ -6,7 +6,6 @@ import {
   Eye,
   MessageSquare,
   TrendingUp,
-  Plus,
   ArrowRight,
   Store,
 } from "lucide-react";
@@ -81,10 +80,10 @@ export default async function SellerDashboardPage() {
             <span className="font-medium text-zinc-700">{shop.name}</span>
           </p>
         </div>
-        <Link href="/dashboard/seller/produits/nouveau">
-          <Button className="gap-2">
-            <Plus size={15} strokeWidth={1.5} className="text-white" />
-            Ajouter un produit
+        <Link href="/dashboard/seller/produits">
+          <Button variant="outline" className="gap-2">
+            <Package size={15} strokeWidth={1.5} className="text-black" />
+            Mes produits
           </Button>
         </Link>
       </div>
