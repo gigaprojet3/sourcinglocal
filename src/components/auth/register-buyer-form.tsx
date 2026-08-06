@@ -96,7 +96,7 @@ export function RegisterBuyerForm() {
     });
 
     if (signInResult?.ok) {
-      router.push("/");
+      router.push("/marketplace");
       router.refresh();
     } else {
       router.push("/connexion?registered=1");

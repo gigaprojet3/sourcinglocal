@@ -19,8 +19,14 @@ model User {
   password  String
   name      String
   phone     String?
-  avatar    String?
+  avatar    String?  // URL Cloudinary ou null (initiales par défaut)
   role      String   @default("BUYER") // "BUYER" | "SELLER" | "ADMIN"
+
+  // Notifications
+  notifNewMessage  Boolean @default(true)  // Nouveau message reçu
+  notifNewContact  Boolean @default(true)  // Nouvel acheteur contacte (seller)
+  notifNewsletter  Boolean @default(false) // Newsletters SourcingLocal
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

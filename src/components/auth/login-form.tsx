@@ -97,7 +97,8 @@ export function LoginForm({ callbackUrl, defaultRole }: LoginFormProps) {
         router.push(callbackUrl ?? "/dashboard/seller");
       }
     } else {
-      router.push(callbackUrl ?? "/");
+      // BUYER → marketplace
+      router.push(callbackUrl ?? "/marketplace");
     }
 
     router.refresh();
