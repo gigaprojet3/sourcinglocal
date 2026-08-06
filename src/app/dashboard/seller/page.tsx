@@ -6,6 +6,7 @@ import {
   Eye,
   MessageSquare,
   TrendingUp,
+  Plus,
   ArrowRight,
   Store,
 } from "lucide-react";

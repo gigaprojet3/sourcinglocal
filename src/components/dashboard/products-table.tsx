@@ -121,7 +121,10 @@ function ActionMenu({
           {/* Toggle stock */}
           <button
             type="button"
-            onClick={onToggleStock}
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleStock();
+            }}
             className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-zinc-700 hover:bg-zinc-50 transition-colors"
           >
             {product.inStock ? (
@@ -143,14 +146,20 @@ function ActionMenu({
               <div className="flex gap-2">
                 <button
                   type="button"
-                  onClick={onConfirmDelete}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onConfirmDelete();
+                  }}
                   className="flex-1 text-xs bg-red-600 text-white rounded-md py-1.5 hover:bg-red-700 transition-colors font-medium"
                 >
                   Oui, supprimer
                 </button>
                 <button
                   type="button"
-                  onClick={onCancelDelete}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onCancelDelete();
+                  }}
                   className="flex-1 text-xs border border-zinc-200 rounded-md py-1.5 hover:bg-zinc-50 transition-colors"
                 >
                   Annuler
@@ -160,7 +169,10 @@ function ActionMenu({
           ) : (
             <button
               type="button"
-              onClick={onRequestDelete}
+              onClick={(e) => {
+                e.stopPropagation();
+                onRequestDelete();
+              }}
               className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
             >
               <Trash2 size={13} strokeWidth={1.5} className="shrink-0" />
@@ -209,11 +221,16 @@ export function ProductsTable({ products, allCategories }: ProductsTableProps) {
   }
 
   async function handleDelete(id: string) {
+    // Fermer le menu APRÈS avoir lancé l'action, pas avant
+    setLoadingId(id);
     setOpenMenuId(null);
     setConfirmDeleteId(null);
-    setLoadingId(id);
-    await deleteProduct(id);
-    router.refresh();
+    const result = await deleteProduct(id);
+    if (result.success) {
+      router.refresh();
+    } else {
+      console.error("Erreur suppression:", result.error);
+    }
     setLoadingId(null);
   }
 

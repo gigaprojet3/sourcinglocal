@@ -251,16 +251,26 @@ export async function deleteProduct(
   });
   if (!product) return { success: false, error: "Produit introuvable." };
 
-  // Supprimer les images Cloudinary
-  try {
-    const images: string[] = JSON.parse(product.images ?? "[]");
-    for (const url of images) {
-      const match = url.match(/\/upload\/(?:v\d+\/)?(.+)\.[a-z]+$/);
-      if (match) await cloudinary.uploader.destroy(match[1]);
-    }
-  } catch { /* silencieux */ }
-
+  // 1. Supprimer en DB d'abord — c'est l'opération principale
   await prisma.product.delete({ where: { id: productId } });
+
+  // 2. Supprimer les images Cloudinary en arrière-plan (non-bloquant)
+  //    On ne throw pas si ça échoue — la DB est déjà à jour
+  void (async () => {
+    try {
+      const images: string[] = JSON.parse(product.images ?? "[]");
+      for (const url of images) {
+        // Seulement pour les URLs Cloudinary
+        if (!url.includes("res.cloudinary.com")) continue;
+        const match = url.match(/\/upload\/(?:v\d+\/)?(.+)\.[a-z]+$/);
+        if (match?.[1]) {
+          await cloudinary.uploader.destroy(match[1]);
+        }
+      }
+    } catch {
+      // Silencieux — la suppression DB a déjà réussi
+    }
+  })();
 
   revalidatePath("/dashboard/seller/produits");
   revalidatePath("/");
