@@ -172,6 +172,14 @@ export function Navbar() {
                           <Settings size={14} strokeWidth={1.5} className="text-black shrink-0" />
                           Mon abonnement
                         </Link>
+                        <Link
+                          href="/parametres"
+                          onClick={() => setIsUserMenuOpen(false)}
+                          className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-zinc-700 hover:bg-zinc-50 transition-colors"
+                        >
+                          <User size={14} strokeWidth={1.5} className="text-black shrink-0" />
+                          Paramètres
+                        </Link>
                       </>
                     )}
 
@@ -286,6 +294,14 @@ export function Navbar() {
                     <Button variant="outline" className="w-full gap-2">
                       <LayoutDashboard size={15} strokeWidth={1.5} className="text-black" />
                       Dashboard
+                    </Button>
+                  </Link>
+                )}
+                {role === "BUYER" && (
+                  <Link href="/parametres" onClick={() => setIsMobileOpen(false)}>
+                    <Button variant="outline" className="w-full gap-2">
+                      <Settings size={15} strokeWidth={1.5} className="text-black" />
+                      Paramètres
                     </Button>
                   </Link>
                 )}
