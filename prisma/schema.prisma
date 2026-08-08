@@ -52,6 +52,7 @@ model Shop {
   city        String?
   country     String   @default("Sénégal")
   address     String?
+  whatsapp    String?  // Numéro WhatsApp international (ex: +2250748123456)
   isVerified  Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

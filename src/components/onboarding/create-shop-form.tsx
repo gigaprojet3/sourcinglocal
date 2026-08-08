@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Store, MapPin, FileText, Loader2 } from "lucide-react";
+import { Store, MapPin, FileText, Loader2, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Combobox } from "@/components/ui/combobox";
@@ -15,6 +15,11 @@ import { COUNTRIES, getCitiesByCountry } from "@/lib/geo-data";
 const schema = z.object({
   name: z.string().min(2, "Le nom doit avoir au moins 2 caractères").max(60, "Maximum 60 caractères"),
   description: z.string().max(300, "Maximum 300 caractères").optional(),
+  whatsapp: z
+    .string()
+    .regex(/^\+?[0-9\s\-()]{8,20}$/, "Numéro invalide (ex: +2250748123456)")
+    .optional()
+    .or(z.literal("")),
   country: z.string().min(1, "Sélectionnez un pays"),
   city: z.string().min(1, "Sélectionnez une ville"),
 });
@@ -125,6 +130,27 @@ export function CreateShopForm({ sellerName }: { sellerName: string }) {
           {watch("description")?.length ?? 0}/300 caractères
         </p>
         {errors.description && <p className="text-xs text-red-600">{errors.description.message}</p>}
+      </div>
+
+      {/* WhatsApp */}
+      <div className="space-y-1.5">
+        <label className="block text-sm font-medium text-zinc-700">
+          Numéro WhatsApp{" "}
+          <span className="text-zinc-400 font-normal">(optionnel)</span>
+        </label>
+        <div className="relative">
+          <Phone size={15} strokeWidth={1.5} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+          <Input
+            {...register("whatsapp")}
+            type="tel"
+            placeholder="Ex: +2250748123456"
+            className="pl-9"
+          />
+        </div>
+        <p className="text-xs text-zinc-400">
+          Ce numéro sera utilisé par les acheteurs pour vous contacter sur WhatsApp.
+        </p>
+        {errors.whatsapp && <p className="text-xs text-red-600">{errors.whatsapp.message}</p>}
       </div>
 
       {/* Pays */}

@@ -7,6 +7,11 @@ import { auth } from "@/auth";
 const createShopSchema = z.object({
   name: z.string().min(2, "Le nom doit avoir au moins 2 caractères").max(60),
   description: z.string().max(300, "Maximum 300 caractères").optional(),
+  whatsapp: z
+    .string()
+    .regex(/^\+?[0-9\s\-()]{8,20}$/, "Numéro invalide")
+    .optional()
+    .or(z.literal("")),
   city: z.string().min(1, "Sélectionnez une ville"),
   country: z.string().min(1, "Sélectionnez un pays"),
 });
@@ -53,7 +58,7 @@ export async function createShop(data: CreateShopInput): Promise<ShopActionResul
     };
   }
 
-  const { name, description, city, country } = parsed.data;
+  const { name, description, city, country, whatsapp } = parsed.data;
 
   // Générer un slug unique
   let baseSlug = slugify(name);
@@ -71,6 +76,7 @@ export async function createShop(data: CreateShopInput): Promise<ShopActionResul
       description: description ?? null,
       city,
       country,
+      whatsapp: whatsapp || null,
       ownerId: session.user.id,
     },
   });

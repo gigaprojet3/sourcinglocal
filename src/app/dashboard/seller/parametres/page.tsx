@@ -52,7 +52,14 @@ export default async function SellerParametresPage() {
         initialCity={initialCity}
       />
 
-      <ShopSection shop={user.shop} />
+      <ShopSection shop={{
+        name: user.shop.name,
+        description: user.shop.description,
+        city: user.shop.city,
+        country: user.shop.country,
+        whatsapp: user.shop.whatsapp ?? null,
+        isVerified: user.shop.isVerified,
+      }} />
 
       <NotificationsSection
         role="SELLER"

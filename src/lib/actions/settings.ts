@@ -120,6 +120,11 @@ export async function updateAvatar(avatarUrl: string): Promise<SettingsResult> {
 const updateShopSchema = z.object({
   name: z.string().min(2, "Minimum 2 caractères").max(60),
   description: z.string().max(300, "Maximum 300 caractères").optional().or(z.literal("")),
+  whatsapp: z
+    .string()
+    .regex(/^\+?[0-9\s\-()]{8,20}$/, "Numéro invalide")
+    .optional()
+    .or(z.literal("")),
   city: z.string().min(1, "Sélectionnez une ville"),
   country: z.string().min(1, "Sélectionnez un pays"),
 });
@@ -153,6 +158,7 @@ export async function updateShop(data: UpdateShopInput): Promise<SettingsResult>
       description: parsed.data.description || null,
       city: parsed.data.city,
       country: parsed.data.country,
+      whatsapp: parsed.data.whatsapp || null,
     },
   });
 
@@ -301,6 +307,7 @@ export async function getSettingsData() {
           description: true,
           city: true,
           country: true,
+          whatsapp: true,
           isVerified: true,
         },
       },
