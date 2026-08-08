@@ -60,7 +60,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   ],
 
   callbacks: {
-    async jwt({ token, user, trigger }) {
+    async jwt({ token, user }) {
       // Au login initial, on copie les données du user
       if (user) {
         token.id = user.id;
@@ -68,15 +68,19 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.hasShop = user.hasShop;
       }
 
-      // À chaque revalidation du token (ou trigger "update"),
-      // on relit hasShop depuis la DB pour le seller
-      // Cela garantit que la création de boutique est reflétée
+      // Pour les sellers, on relit hasShop depuis la DB
+      // mais on entoure d'un try/catch pour ne jamais crasher la session
       if (token.id && token.role === "SELLER") {
-        const shop = await prisma.shop.findUnique({
-          where: { ownerId: token.id as string },
-          select: { id: true },
-        });
-        token.hasShop = !!shop;
+        try {
+          const shop = await prisma.shop.findUnique({
+            where: { ownerId: token.id as string },
+            select: { id: true },
+          });
+          token.hasShop = !!shop;
+        } catch {
+          // En cas d'erreur DB, on garde la valeur existante du token
+          // pour éviter que /api/auth/session retourne du HTML
+        }
       }
 
       return token;
@@ -107,5 +111,5 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     maxAge: 30 * 24 * 60 * 60, // 30 jours
   },
 
-  secret: process.env.NEXTAUTH_SECRET,
+  secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
 });
