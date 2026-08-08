@@ -17,8 +17,8 @@ const registerBuyerSchema = z.object({
     .regex(/[A-Z]/, "Doit contenir au moins une majuscule")
     .regex(/[0-9]/, "Doit contenir au moins un chiffre"),
   phone: z.string().min(8, "Numéro invalide"),
-  country: z.string().min(2, "Sélectionnez un pays"),
-  city: z.string().min(2, "Sélectionnez une ville"),
+  country: z.string().min(1, "Sélectionnez un pays"),
+  city: z.string().min(1, "Sélectionnez une ville"),
 });
 
 const registerSellerSchema = registerBuyerSchema;

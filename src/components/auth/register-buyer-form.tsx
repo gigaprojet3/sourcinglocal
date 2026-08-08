@@ -84,7 +84,11 @@ export function RegisterBuyerForm() {
     });
 
     if (!result.success) {
-      setServerError(result.error ?? "Une erreur est survenue.");
+      // Afficher l'erreur principale ou le premier fieldError trouvé
+      const firstFieldError = result.fieldErrors
+        ? Object.values(result.fieldErrors).flat()[0]
+        : undefined;
+      setServerError(result.error ?? firstFieldError ?? "Une erreur est survenue.");
       return;
     }
 

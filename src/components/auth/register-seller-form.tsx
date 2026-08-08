@@ -82,7 +82,10 @@ export function RegisterSellerForm() {
     });
 
     if (!result.success) {
-      setServerError(result.error ?? "Une erreur est survenue.");
+      const firstFieldError = result.fieldErrors
+        ? Object.values(result.fieldErrors).flat()[0]
+        : undefined;
+      setServerError(result.error ?? firstFieldError ?? "Une erreur est survenue.");
       return;
     }
 
