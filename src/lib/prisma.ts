@@ -2,16 +2,21 @@
  * Prisma Client singleton pour Next.js
  *
  * Prisma 7 requiert un driver adapter explicite.
- * Dev: SQLite via @prisma/adapter-better-sqlite3
- * Prod: Remplacer par @prisma/adapter-pg (PostgreSQL/Supabase)
+ * Prod: PostgreSQL via @prisma/adapter-pg (Supabase)
+ * Dev local: changer DATABASE_URL vers "file:./dev.db"
+ *            et utiliser PrismaBetterSqlite3 à la place
  */
 import { PrismaClient } from "@/generated/prisma/client/client";
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import { PrismaPg } from "@prisma/adapter-pg";
 
 function createPrismaClient() {
-  const adapter = new PrismaBetterSqlite3({
-    url: process.env.DATABASE_URL ?? "file:./dev.db",
-  });
+  const connectionString = process.env.DATABASE_URL;
+
+  if (!connectionString) {
+    throw new Error("DATABASE_URL is not set in environment variables.");
+  }
+
+  const adapter = new PrismaPg({ connectionString });
   return new PrismaClient({ adapter });
 }
 
